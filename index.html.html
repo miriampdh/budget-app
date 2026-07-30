@@ -80,11 +80,12 @@
     .month-btn:hover { color: var(--text); }
 
     .month-label {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
       color: var(--text);
-      min-width: 90px;
+      min-width: 120px;
       text-align: center;
+      line-height: 1.4;
     }
 
     /* BALANCE */
@@ -439,9 +440,9 @@
     <div class="header-top">
       <span class="app-title">Budget</span>
       <div class="month-nav">
-        <button class="month-btn" onclick="changeMonth(-1)">‹</button>
+        <button class="month-btn" onclick="changeWeek(-1)">‹</button>
         <span class="month-label" id="monthLabel"></span>
-        <button class="month-btn" onclick="changeMonth(1)">›</button>
+        <button class="month-btn" onclick="changeWeek(1)">›</button>
       </div>
     </div>
 
@@ -506,23 +507,58 @@
 
     let currentType = 'income';
     let selectedEmoji = '💰';
-    let currentDate = new Date();
-    let viewYear = currentDate.getFullYear();
-    let viewMonth = currentDate.getMonth();
 
-    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    // Week offset from current week (0 = this week)
+    let weekOffset = 0;
 
-    function getKey() { return `budget_${viewYear}_${viewMonth}`; }
-    function loadTx() { return JSON.parse(localStorage.getItem(getKey()) || '[]'); }
-    function saveTx(list) { localStorage.setItem(getKey(), JSON.stringify(list)); }
+    function getWeekStart(offset) {
+      const now = new Date();
+      const day = now.getDay(); // 0=Sun
+      const monday = new Date(now);
+      monday.setHours(0,0,0,0);
+      monday.setDate(now.getDate() - ((day + 6) % 7) + offset * 7);
+      return monday;
+    }
+
+    function getWeekEnd(offset) {
+      const start = getWeekStart(offset);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23,59,59,999);
+      return end;
+    }
+
+    function getKey(offset) {
+      const start = getWeekStart(offset);
+      const y = start.getFullYear();
+      const m = String(start.getMonth()+1).padStart(2,'0');
+      const d = String(start.getDate()).padStart(2,'0');
+      return `budget_week_${y}${m}${d}`;
+    }
+
+    function loadTx() { return JSON.parse(localStorage.getItem(getKey(weekOffset)) || '[]'); }
+    function saveTx(list) { localStorage.setItem(getKey(weekOffset), JSON.stringify(list)); }
 
     function fmt(n) {
       return '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
+    function fmtDay(date) {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
     function render() {
       const txs = loadTx();
-      document.getElementById('monthLabel').textContent = `${MONTHS[viewMonth]} ${viewYear}`;
+      const start = getWeekStart(weekOffset);
+      const end = getWeekEnd(weekOffset);
+
+      const label = weekOffset === 0
+        ? `This week\n${fmtDay(start)} – ${fmtDay(end)}`
+        : weekOffset === -1
+        ? `Last week\n${fmtDay(start)} – ${fmtDay(end)}`
+        : `${fmtDay(start)} – ${fmtDay(end)}`;
+
+      document.getElementById('monthLabel').innerHTML = label.replace('\n', '<br>');
 
       let income = 0, expense = 0;
       txs.forEach(t => {
@@ -567,10 +603,8 @@
       render();
     }
 
-    function changeMonth(dir) {
-      viewMonth += dir;
-      if (viewMonth > 11) { viewMonth = 0; viewYear++; }
-      if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+    function changeWeek(dir) {
+      weekOffset += dir;
       render();
     }
 
@@ -619,8 +653,10 @@
       const now = new Date();
       const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-      const txs = loadTx();
-      txs.push({
+      // Always save to current week
+      const currentKey = getKey(0);
+      const currentTxs = JSON.parse(localStorage.getItem(currentKey) || '[]');
+      currentTxs.push({
         id: Date.now().toString(),
         type: currentType,
         amount,
@@ -628,11 +664,10 @@
         emoji: selectedEmoji,
         date: dateStr
       });
-      saveTx(txs);
+      localStorage.setItem(currentKey, JSON.stringify(currentTxs));
 
-      // switch view to current month if adding there
-      viewYear = now.getFullYear();
-      viewMonth = now.getMonth();
+      // Jump to current week to see the new entry
+      weekOffset = 0;
 
       closeModal();
       render();
