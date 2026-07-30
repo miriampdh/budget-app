@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Budget" />
+  <title>Budget</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --surface2: #242424;
+      --border: #2e2e2e;
+      --text: #f0f0f0;
+      --muted: #888;
+      --income: #4ade80;
+      --expense: #f87171;
+      --accent: #a78bfa;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100dvh;
+      max-width: 430px;
+      margin: 0 auto;
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    }
+
+    /* HEADER */
+    .header {
+      padding: 52px 24px 20px;
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .app-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .month-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .month-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 4px 8px;
+      font-size: 18px;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .month-btn:hover { color: var(--text); }
+
+    .month-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      min-width: 120px;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* BALANCE */
+    .balance-block {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .balance-label {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .balance-amount {
+      font-family: 'DM Mono', monospace;
+      font-size: 44px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      transition: color 0.3s;
+    }
+
+    .balance-amount.positive { color: var(--income); }
+    .balance-amount.negative { color: var(--expense); }
+    .balance-amount.zero { color: var(--muted); }
+
+    /* STATS ROW */
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stat-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .stat-dot.income { background: var(--income); }
+    .stat-dot.expense { background: var(--expense); }
+
+    .stat-amount {
+      font-family: 'DM Mono', monospace;
+      font-size: 20px;
+      font-weight: 500;
+    }
+    .stat-amount.income { color: var(--income); }
+    .stat-amount.expense { color: var(--expense); }
+
+    /* CONTENT */
+    .content {
+      padding: 20px 24px 120px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      margin-top: 24px;
+    }
+
+    /* TRANSACTION LIST */
+    .tx-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tx-item {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tx-icon {
+      font-size: 22px;
+      width: 40px;
+      height: 40px;
+      background: var(--surface2);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .tx-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .tx-desc {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tx-date {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .tx-amount {
+      font-family: 'DM Mono', monospace;
+      font-size: 15px;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+    .tx-amount.income { color: var(--income); }
+    .tx-amount.expense { color: var(--expense); }
+
+    .tx-delete {
+      background: none;
+      border: none;
+      color: var(--border);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      transition: color 0.15s;
+      flex-shrink: 0;
+    }
+    .tx-delete:hover { color: var(--expense); }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .empty-state .emoji { font-size: 36px; margin-bottom: 12px; }
+
+    /* FAB */
+    .fab {
+      position: fixed;
+      bottom: calc(24px + env(safe-area-inset-bottom));
+      right: 50%;
+      transform: translateX(50%);
+      max-width: 382px;
+      width: calc(100% - 48px);
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      padding: 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 8px 32px rgba(167, 139, 250, 0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
+      z-index: 20;
+    }
+    .fab:active {
+      transform: translateX(50%) scale(0.97);
+      box-shadow: 0 4px 16px rgba(167, 139, 250, 0.2);
+    }
+
+    /* MODAL */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 30;
+      display: none;
+      align-items: flex-end;
+    }
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      padding: 28px 24px calc(28px + env(safe-area-inset-bottom));
+      width: 100%;
+      animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    /* TYPE TOGGLE */
+    .type-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--surface2);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 20px;
+    }
+
+    .type-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .type-btn.active.income {
+      background: var(--income);
+      color: #0f0f0f;
+    }
+    .type-btn.active.expense {
+      background: var(--expense);
+      color: #0f0f0f;
+    }
+
+    /* FORM */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .form-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      padding: 14px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus {
+      border-color: var(--accent);
+    }
+    .form-input::placeholder { color: var(--muted); }
+
+    .amount-input {
+      font-family: 'DM Mono', monospace;
+      font-size: 28px;
+      font-weight: 400;
+      text-align: center;
+      padding: 16px;
+    }
+
+    /* EMOJI PICKER */
+    .emoji-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .emoji-opt {
+      background: var(--surface2);
+      border: 2px solid transparent;
+      border-radius: 10px;
+      font-size: 20px;
+      padding: 8px 4px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .emoji-opt.selected {
+      border-color: var(--accent);
+      background: rgba(167, 139, 250, 0.15);
+    }
+
+    .save-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.15s;
+    }
+    .save-btn:active { opacity: 0.85; }
+    .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .cancel-btn {
+      width: 100%;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      padding: 12px;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <span class="app-title">Budget</span>
+      <div class="month-nav">
+        <button class="month-btn" onclick="changeWeek(-1)">‹</button>
+        <span class="month-label" id="monthLabel"></span>
+        <button class="month-btn" onclick="changeWeek(1)">›</button>
+      </div>
+    </div>
+
+    <div class="balance-block">
+      <div class="balance-label">BALANCE</div>
+      <div class="balance-amount" id="balanceAmount">$0.00</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label"><span class="stat-dot income"></span>Income</div>
+        <div class="stat-amount income" id="totalIncome">$0.00</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><span class="stat-dot expense"></span>Expenses</div>
+        <div class="stat-amount expense" id="totalExpense">$0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <div class="section-title">Transactions</div>
+    <div class="tx-list" id="txList"></div>
+  </div>
+
+  <!-- FAB -->
+  <button class="fab" onclick="openModal()">＋ Add transaction</button>
+
+  <!-- MODAL -->
+  <div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+    <div class="modal" id="modal">
+      <div class="modal-title">New transaction</div>
+
+      <div class="type-toggle">
+        <button class="type-btn income active" id="btnIncome" onclick="setType('income')">↑ Income</button>
+        <button class="type-btn expense" id="btnExpense" onclick="setType('expense')">↓ Expense</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Amount (USD)</label>
+        <input class="form-input amount-input" id="inputAmount" type="number" inputmode="decimal" placeholder="0.00" min="0" step="0.01" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <input class="form-input" id="inputDesc" type="text" placeholder="e.g. Salary, Groceries..." maxlength="40" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Icon</label>
+        <div class="emoji-grid" id="emojiGrid"></div>
+      </div>
+
+      <button class="save-btn" id="saveBtn" onclick="saveTransaction()">Save</button>
+      <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    const EMOJIS = ['💰','🏠','🛒','🚗','🍔','☕','💊','🎮','✈️','👗','📱','💡','🎓','💪','🎁','💼','🏋️','🐾','🎵','📚','🍕','🏥','⛽','🛍️'];
+
+    let currentType = 'income';
+    let selectedEmoji = '💰';
+
+    // Week offset from current week (0 = this week)
+    let weekOffset = 0;
+
+    function getWeekStart(offset) {
+      const now = new Date();
+      const day = now.getDay(); // 0=Sun
+      const monday = new Date(now);
+      monday.setHours(0,0,0,0);
+      monday.setDate(now.getDate() - ((day + 6) % 7) + offset * 7);
+      return monday;
+    }
+
+    function getWeekEnd(offset) {
+      const start = getWeekStart(offset);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23,59,59,999);
+      return end;
+    }
+
+    function getKey(offset) {
+      const start = getWeekStart(offset);
+      const y = start.getFullYear();
+      const m = String(start.getMonth()+1).padStart(2,'0');
+      const d = String(start.getDate()).padStart(2,'0');
+      return `budget_week_${y}${m}${d}`;
+    }
+
+    function loadTx() { return JSON.parse(localStorage.getItem(getKey(weekOffset)) || '[]'); }
+    function saveTx(list) { localStorage.setItem(getKey(weekOffset), JSON.stringify(list)); }
+
+    function fmt(n) {
+      return '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function fmtDay(date) {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function render() {
+      const txs = loadTx();
+      const start = getWeekStart(weekOffset);
+      const end = getWeekEnd(weekOffset);
+
+      const label = weekOffset === 0
+        ? `This week\n${fmtDay(start)} – ${fmtDay(end)}`
+        : weekOffset === -1
+        ? `Last week\n${fmtDay(start)} – ${fmtDay(end)}`
+        : `${fmtDay(start)} – ${fmtDay(end)}`;
+
+      document.getElementById('monthLabel').innerHTML = label.replace('\n', '<br>');
+
+      let income = 0, expense = 0;
+      txs.forEach(t => {
+        if (t.type === 'income') income += t.amount;
+        else expense += t.amount;
+      });
+      const balance = income - expense;
+
+      const balEl = document.getElementById('balanceAmount');
+      balEl.textContent = (balance < 0 ? '-' : '') + fmt(balance);
+      balEl.className = 'balance-amount ' + (balance > 0 ? 'positive' : balance < 0 ? 'negative' : 'zero');
+
+      document.getElementById('totalIncome').textContent = fmt(income);
+      document.getElementById('totalExpense').textContent = fmt(expense);
+
+      const list = document.getElementById('txList');
+      if (txs.length === 0) {
+        list.innerHTML = `<div class="empty-state"><div class="emoji">📭</div>No transactions yet.<br>Tap + to add one.</div>`;
+        return;
+      }
+
+      list.innerHTML = [...txs].reverse().map(t => `
+        <div class="tx-item">
+          <div class="tx-icon">${t.emoji}</div>
+          <div class="tx-info">
+            <div class="tx-desc">${escHtml(t.desc)}</div>
+            <div class="tx-date">${t.date}</div>
+          </div>
+          <div class="tx-amount ${t.type}">${t.type === 'income' ? '+' : '-'}${fmt(t.amount)}</div>
+          <button class="tx-delete" onclick="deleteTx('${t.id}')" title="Delete">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function deleteTx(id) {
+      const txs = loadTx().filter(t => t.id !== id);
+      saveTx(txs);
+      render();
+    }
+
+    function changeWeek(dir) {
+      weekOffset += dir;
+      render();
+    }
+
+    // MODAL
+    function openModal() {
+      buildEmojiGrid();
+      setType('income');
+      document.getElementById('inputAmount').value = '';
+      document.getElementById('inputDesc').value = '';
+      document.getElementById('overlay').classList.add('open');
+      setTimeout(() => document.getElementById('inputAmount').focus(), 350);
+    }
+
+    function closeModal() {
+      document.getElementById('overlay').classList.remove('open');
+    }
+
+    function handleOverlayClick(e) {
+      if (e.target === document.getElementById('overlay')) closeModal();
+    }
+
+    function setType(type) {
+      currentType = type;
+      document.getElementById('btnIncome').className = 'type-btn income' + (type === 'income' ? ' active' : '');
+      document.getElementById('btnExpense').className = 'type-btn expense' + (type === 'expense' ? ' active' : '');
+    }
+
+    function buildEmojiGrid() {
+      selectedEmoji = '💰';
+      document.getElementById('emojiGrid').innerHTML = EMOJIS.map((e, i) => `
+        <button class="emoji-opt${i === 0 ? ' selected' : ''}" onclick="selectEmoji(this,'${e}')">${e}</button>
+      `).join('');
+    }
+
+    function selectEmoji(el, emoji) {
+      document.querySelectorAll('.emoji-opt').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedEmoji = emoji;
+    }
+
+    function saveTransaction() {
+      const amount = parseFloat(document.getElementById('inputAmount').value);
+      const desc = document.getElementById('inputDesc').value.trim();
+      if (!amount || amount <= 0 || !desc) return;
+
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+      // Always save to current week
+      const currentKey = getKey(0);
+      const currentTxs = JSON.parse(localStorage.getItem(currentKey) || '[]');
+      currentTxs.push({
+        id: Date.now().toString(),
+        type: currentType,
+        amount,
+        desc,
+        emoji: selectedEmoji,
+        date: dateStr
+      });
+      localStorage.setItem(currentKey, JSON.stringify(currentTxs));
+
+      // Jump to current week to see the new entry
+      weekOffset = 0;
+
+      closeModal();
+      render();
+    }
+
+    // INIT
+    render();
+  </script>
+</body>
+</html>
